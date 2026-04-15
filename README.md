@@ -253,6 +253,37 @@ Then run `/start-task <TASK-ID>`. The skill will:
 - If you pre-seed both files, make sure the stage directory name (`stage-1-<slug>`) matches the link in the task `summary.md`.
 - Don't create `research.md` / `plan.md` / `implementation.md` etc. manually — those are written by the stage skills.
 
+### Drafting the next stage while the current one is in flight
+
+Sometimes you want to jot down scope for the *next* stage before you forget, while a current stage is still being researched, implemented, or reviewed. The trick is the **`initial`** status — stage skills that auto-detect the current stage ignore any stage whose `Status` is `initial`, so a draft stage sitting in the task directory won't be picked up by `/research-stage`, `/plan-stage`, `/implement-stage`, `/run-stage`, etc.
+
+Create `<DOCS_DIR>/tasks/<TASK-ID>/stage-<N+1>-<slug>/summary.md` alongside the active stage:
+
+```markdown
+---
+Stage: <N+1>
+Slug: <slug>
+Status: initial
+Created: <YYYY-MM-DD>
+---
+
+# Stage <N+1>: <Brief Description>
+
+## Goal
+Draft notes for the next stage. Freely editable — auto-detection skips stages
+with `Status: initial`, so this will not disrupt work on the current stage.
+```
+
+While `Status` stays `initial`:
+- Stage skills keep operating on the highest non-`initial` stage (i.e. the one you're actually working on).
+- The draft is kept out of `Overview.md` and the task-level `CurrentStage` — it's invisible to status reporting until you promote it.
+
+When you're ready to work on it:
+- Either flip `Status:` from `initial` to `created` and run the stage skills normally, or
+- Run `/start-stage <TASK-ID>` — it will find the pre-seeded draft, finalize its frontmatter, update `Overview.md`, and set the task's `CurrentStage`.
+
+If you ever need to force a stage skill onto a specific draft without promoting it first, pass the stage number explicitly (e.g. `/research-stage <TASK-ID> <N+1>`) — explicit stage numbers bypass the `initial` filter.
+
 ## File format expectations
 
 - **`summary.md` frontmatter** (task): `ID`, `Type`, `Author`, `Created`, `Status`, `CurrentStage`.
