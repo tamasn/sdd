@@ -168,6 +168,91 @@ Most skills are interactive, but a few inputs are worth having ready:
 - **Plan approval**: `/plan-stage` and `/run-stage` both pause after writing `plan.md` and wait for explicit approval before implementing.
 - **Issue-tracker access**: for GitHub, the `gh` CLI must be authenticated; for JIRA, configure [`dot_claude/skills/read-issue/read-jira.sh`](dot_claude/skills/read-issue/read-jira.sh) before running `/read-issue` or `/start-task` with a ticket ID.
 
+## Pre-seeding a task manually
+
+`/start-task <TASK-ID>` detects an existing task directory and will fill in anything missing instead of recreating it. This lets you draft the spec in your editor first — when you already know what you want done — and then kick off the workflow with a single command.
+
+The minimum `<TASK-ID>` convention: a short uppercase prefix plus a zero-padded number (e.g. `AUTH-0007`, `GH-0123`, `AP-20564`). Pick one that doesn't already exist under `<DOCS_DIR>/tasks/`.
+
+### Use case A — only pre-seed the first stage
+
+Use this when you know what the first stage should do but want `/start-task` to ask you about the overarching task goal, scope, and non-goals.
+
+Create:
+
+```
+<DOCS_DIR>/tasks/<TASK-ID>/stage-1-<slug>/summary.md
+```
+
+(no task-level `summary.md`, no other files). `<slug>` is lowercase, hyphen-separated, 2–4 words — e.g. `add-rate-limiting`.
+
+`stage-1-<slug>/summary.md`:
+
+```markdown
+---
+Stage: 1
+Slug: <slug>
+Status: created
+Created: <YYYY-MM-DD>
+---
+
+# Stage 1: <Brief Description>
+
+## Goal
+Detailed description of what this stage should accomplish. Put all the concrete
+detail here — this is what `/research-stage` and `/plan-stage` will read.
+```
+
+Then run `/start-task <TASK-ID>`. The skill will:
+- detect the pre-seeded stage and leave its directory untouched,
+- ask you for the task-level overview / scope / non-goals,
+- create the task `summary.md`, update `Overview.md`, create the branch, and commit.
+
+### Use case B — pre-seed the task summary (and optionally the stage)
+
+Use this when you want full control over the task-level framing and are happy for `/start-task` to prompt you for the stage slug if you didn't supply one.
+
+Create:
+
+```
+<DOCS_DIR>/tasks/<TASK-ID>/summary.md
+```
+
+`summary.md`:
+
+```markdown
+---
+ID: <TASK-ID>
+Type: Feature | Bug | Refactor
+Author: <your-name>
+Created: <YYYY-MM-DD>
+Status: created
+CurrentStage: 1
+---
+
+# <TASK-ID> - <Brief Summary>
+
+## Overview
+High-level context for the task. Detailed goals belong in each stage's summary.
+
+## Stages
+- [Stage 1: <slug>](stage-1-<slug>/summary.md)
+```
+
+Optionally also pre-seed `stage-1-<slug>/summary.md` using the template from use case A — if you do, list the matching slug in the `## Stages` section above.
+
+Then run `/start-task <TASK-ID>`. The skill will:
+- read your `summary.md`, validate/fill in missing frontmatter, and keep your content,
+- create the first stage (asking you for a slug and goal if you didn't pre-seed one),
+- create the branch, update `Overview.md`, and commit.
+
+### Tips
+
+- Dates use `YYYY-MM-DD`.
+- `Status: created` and `CurrentStage: 1` are the correct starting values — don't pre-advance them.
+- If you pre-seed both files, make sure the stage directory name (`stage-1-<slug>`) matches the link in the task `summary.md`.
+- Don't create `research.md` / `plan.md` / `implementation.md` etc. manually — those are written by the stage skills.
+
 ## File format expectations
 
 - **`summary.md` frontmatter** (task): `ID`, `Type`, `Author`, `Created`, `Status`, `CurrentStage`.
