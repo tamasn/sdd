@@ -129,7 +129,9 @@ project-root/
 
 | Skill | Arguments | Writes | Reads |
 |---|---|---|---|
+| `/init-task` | `[issue-id]` (optional) | `tasks/<TASK-ID>/summary.md`, `stage-1-<slug>/summary.md` (both `Status: initial`) | issue tracker (if an ID is given) |
 | `/start-task` | `[issue-id \| task-id]` (optional) | `tasks/<TASK-ID>/summary.md`, `stage-1-<slug>/summary.md`, `Overview.md`; creates feature branch | issue tracker |
+| `/init-stage` | `[task-id]` (optional) | new `stage-<N>-<slug>/summary.md` (`Status: initial`) | task directory, git branch |
 | `/start-stage` | `<task-id>` | new `stage-<N>-<slug>/summary.md`, updates task `summary.md` + `Overview.md` | previous stage |
 | `/create-branch` | — (invoked by `/start-task`) | new git branch `<prefix>/<ticket>-<slug>` | current base branch |
 | `/read-issue` | `<issue-id>` (e.g. `123`, `#123`, `AP-20564`) | — (returns issue details) | GitHub Issues or JIRA |
@@ -173,6 +175,23 @@ Most skills are interactive, but a few inputs are worth having ready:
 `/start-task <TASK-ID>` detects an existing task directory and will fill in anything missing instead of recreating it. This lets you draft the spec in your editor first — when you already know what you want done — and then kick off the workflow with a single command.
 
 The minimum `<TASK-ID>` convention: a short uppercase prefix plus a zero-padded number (e.g. `AUTH-0007`, `GH-0123`, `AP-20564`). Pick one that doesn't already exist under `<DOCS_DIR>/tasks/`.
+
+### Fastest path: `/init-task`
+
+If you want the scaffolding created for you but still want to flesh out the goal in your editor, run:
+
+```
+/init-task [issue-id]
+```
+
+`/init-task` asks a handful of short questions (brief summary, optional linked ticket, stage 1 scope, author), then writes both `<DOCS_DIR>/tasks/<TASK-ID>/summary.md` and `stage-1-<slug>/summary.md` with `Status: initial`. It deliberately stops short of the things `/start-task` does — **no branch, no `Overview.md` update, no commit** — so the draft is invisible to the rest of the workflow until you're ready.
+
+When you've edited the goal to your satisfaction, either:
+
+- flip `Status: initial` → `Status: created` in both files and run `/start-task <TASK-ID>`, or
+- just run `/start-task <TASK-ID>` — it adopts the pre-seeded content and normalizes the frontmatter.
+
+If you'd rather write the files by hand, the two templates below still work. Use case A covers seeding only the first stage; use case B covers seeding the task summary (and optionally the stage).
 
 ### Use case A — only pre-seed the first stage
 
@@ -257,7 +276,15 @@ Then run `/start-task <TASK-ID>`. The skill will:
 
 Sometimes you want to jot down scope for the *next* stage before you forget, while a current stage is still being researched, implemented, or reviewed. The trick is the **`initial`** status — stage skills that auto-detect the current stage ignore any stage whose `Status` is `initial`, so a draft stage sitting in the task directory won't be picked up by `/research-stage`, `/plan-stage`, `/implement-stage`, `/run-stage`, etc.
 
-Create `<DOCS_DIR>/tasks/<TASK-ID>/stage-<N+1>-<slug>/summary.md` alongside the active stage:
+The fastest way to create such a draft is:
+
+```
+/init-stage [task-id]
+```
+
+`/init-stage` auto-detects the active task (from `Overview.md` and the current git branch), asks for a short description of the new stage, derives a slug and the next stage number, and writes `stage-<N+1>-<slug>/summary.md` with `Status: initial`. It intentionally leaves the task `summary.md`, `Overview.md`, and `CurrentStage` untouched so the current stage isn't disrupted. If the previous stage isn't yet `documented`, `/init-stage` warns you and asks before proceeding.
+
+Prefer to do it by hand? Create `<DOCS_DIR>/tasks/<TASK-ID>/stage-<N+1>-<slug>/summary.md` alongside the active stage:
 
 ```markdown
 ---
