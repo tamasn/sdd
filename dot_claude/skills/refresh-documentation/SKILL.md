@@ -54,7 +54,10 @@ Launch four subagents concurrently using `subagent_type: "Explore"`.
 > Check whether completed task documents contain knowledge that should be in architecture docs but isn't.
 >
 > 1. Find all task directories in `<DOCS_DIR>/tasks/*/`
-> 2. For each task, read `findings.md`, `implementation.md`, and `review.md` (if they exist) — check inside stage directories too
+> 2. For each task, walk every stage directory and read whichever of these are present (compacted stages keep only some):
+>    - `summary.md` — particularly the `## Goal` and `## Changes` sections (the `## Changes` section is the primary post-compaction record of what shipped)
+>    - `findings.md` — always present in completed stages, the canonical source of learnings
+>    - `implementation.md` and `review.md` — only present in uncompacted stages; treat these as additional context when they exist, but do NOT require them
 > 3. Identify: architectural decisions, new patterns, structural changes, compiler/test learnings
 > 4. Check if these are reflected in the corresponding `<DOCS_DIR>/architecture/` docs
 > 5. Flag knowledge that exists only in task docs

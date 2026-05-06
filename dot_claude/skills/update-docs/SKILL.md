@@ -35,12 +35,16 @@ Follow the [stage detection procedure](../_shared/stage-workflow.md#stage-detect
 - Updated files in `<DOCS_DIR>/architecture/`
 - Updates `Status` in `<STAGE-DIR>/summary.md` to `documented`
 - Updates `Status` in task `summary.md` to `stage-<N>-complete`
+- Adds a `## Changes` section to `<STAGE-DIR>/summary.md` (compaction)
+- Deletes `<STAGE-DIR>/research.md`, `plan.md`, `implementation.md`, `review.md` (compaction)
 
 ## Instructions
 
 ### 1. Read task files
 
 Read stage `implementation.md` and `review.md`. Verify stage `Status` is `reviewed` or `documented` (allow re-runs).
+
+If the stage has already been compacted (no `implementation.md`/`review.md` present and `summary.md` already has a `## Changes` section), stop and tell the user to start a new stage instead — compacted stages cannot be re-documented.
 
 ### 2. Read the diff
 
@@ -82,9 +86,15 @@ Follow the [overview update procedure](../_shared/stage-workflow.md#overview-upd
 - Update the task status to `stage-<N>-complete`
 - Update the stage line for stage N to show status `documented`
 
-### 7. Commit
+### 7. Compact stage documentation
 
-Commit with message: `docs(<TASK-ID>): update documentation for stage <N>`
+Run the [compaction procedure](../_shared/stage-workflow.md#compaction). This is automatic — do not prompt the user.
+
+In short: read `implementation.md` and `review.md`, append a `## Changes` section to `<STAGE-DIR>/summary.md` with a Summary, Files modified list, and (only when warranted) Notes; then delete `research.md`, `plan.md`, `implementation.md`, and `review.md`.
+
+### 8. Commit
+
+Commit with message: `docs(<TASK-ID>): update documentation for stage <N>`. The commit must include the architecture doc updates, `findings.md`, the new `## Changes` section in `summary.md`, the status bumps, the `Overview.md` update, and the deletions from compaction — all in one commit.
 
 ## Completion
 
@@ -98,3 +108,4 @@ Tell the user:
 - Cover one area per file, reference other files instead of repeating
 - Keep docs compact and useful for AI code generation
 - Do NOT delete `CLAUDE.md`, core architectural decisions, or context about why things work a certain way
+- The compaction step (step 7) is the one-way exit from a stage. After it runs, the stage cannot be re-documented — anything worth keeping must be in `summary.md`'s `## Changes`, in `findings.md`, or already integrated into `<DOCS_DIR>/architecture/`

@@ -212,8 +212,12 @@ Spawn an Agent with `subagent_type: "general-purpose"`:
 > 7. Update `Status` in stage `summary.md` frontmatter to `documented`
 > 8. Update `Status` in task `summary.md` frontmatter to `stage-<N>-complete`
 > 9. Update `<DOCS_DIR>/tasks/Overview.md` with new statuses
-> 10. Commit with: `docs(<TASK-ID>): update documentation for stage <N>`
-> 11. Return a summary of what documentation was updated
+> 10. **Compact stage documentation** (automatic, no prompt) — follow the compaction procedure in `_shared/stage-workflow.md`:
+>     - Append a `## Changes` section to stage `summary.md` containing **Summary** (1-3 sentences from `implementation.md` + diff), **Files modified** (bulleted file paths with brief notes), and **Notes** (only if there are real deviations or follow-ups; pulled from `implementation.md`'s "Issues encountered", "Key decisions", "Follow-up")
+>     - Delete `research.md`, `plan.md`, `implementation.md`, `review.md` from the stage directory
+>     - Refuse to compact and return an error if `findings.md` is missing or empty
+> 11. Commit with: `docs(<TASK-ID>): update documentation for stage <N>` — single commit covering architecture doc updates, `findings.md`, the new `## Changes` section, status bumps, `Overview.md` update, and the compaction deletions
+> 12. Return a summary of what documentation was updated and confirm compaction is complete
 
 **After the subagent returns**: Tell the user the stage is complete. Suggest:
 - To add another stage: `/start-stage <TASK-ID>`

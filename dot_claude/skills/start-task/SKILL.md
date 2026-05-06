@@ -130,7 +130,11 @@ If the task summary contained detailed goal information, incorporate it into thi
 
 ### 4. Create the branch
 
-Use the `/create-branch` skill to create a feature branch.
+Only create a branch if currently on a base branch (`<DEFAULT_BRANCH>`, `main`, `develop`, or `master`); otherwise skip — the branch already exists.
+
+1. Determine the prefix from the task type: `feat/`, `fix/`, `refactor/`, `chore/`, or `docs/`.
+2. Build the branch name: `<prefix>/<TASK-ID>-<slug>` (e.g. `feat/AP-20564-email-validation`). Reuse the stage 1 slug.
+3. Create the branch: `git checkout -b <branch-name>`.
 
 ### 5. Update Overview
 

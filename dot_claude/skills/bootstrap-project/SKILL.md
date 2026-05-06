@@ -27,6 +27,7 @@ Current templates:
 - `scala` — Scala with sbt, Cats Effect, ScalaTest
 - `node-service` — Node.js backend service with TypeScript, Express/Fastify
 - `react-typescript` — React frontend with TypeScript, Vite
+- `python` — Python with uv, pytest, mypy, ruff
 
 If the user's language/framework matches a template, use it. Otherwise, fall back to the generic templates.
 

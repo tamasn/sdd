@@ -63,7 +63,11 @@ The skills implement a **task → stage → PR** pipeline. A *task* corresponds 
 created → researched → planned → implemented → reviewed → documented
 ```
 
-### Canonical pipeline
+There are three flavours of the pipeline, each with the same goal — a researched, planned, implemented, reviewed, documented change — but at different ceremony levels. Pick the one that matches the size of the work.
+
+### Canonical pipeline (full ceremony, isolated stages)
+
+Best for non-trivial features and bug fixes that benefit from explicit research/plan/review artefacts and one commit per phase.
 
 ```
 /bootstrap-project         (new repo, once)
@@ -78,7 +82,8 @@ created → researched → planned → implemented → reviewed → documented
   │ /plan-stage        → writes plan.md     (USER APPROVES)   │
   │ /implement-stage   → writes code + implementation.md      │
   │ /review-stage      → writes review.md, minor fixes        │
-  │ /update-docs       → updates architecture/, findings.md   │
+  │ /update-docs       → updates architecture/, findings.md;  │
+  │                       compacts the stage                  │
   └───────────────────────────────────────────────────────────┘
          │
          ▼  (more scope? → /start-stage and repeat)
@@ -95,7 +100,43 @@ Or run a whole stage end-to-end, each phase in an isolated subagent, with one co
 
 `/run-stage` spawns fresh Explore / general-purpose agents for each phase so the orchestrator's own context stays lean. It still pauses for plan approval before coding.
 
+### Simple pipeline (one conversation, single commit)
+
+Best for small iterations where staging ceremony is overkill but you still want a task document trail compatible with `/review-stage` and `/update-docs` later.
+
+```
+/start-task-simple [issue-id]    ← spec → research → plan (USER APPROVES) → implement
+         │                          all in one conversation; branch created only if
+         │                          on a base branch; single commit at the end
+         ▼
+/review-changes-light            ← optional self-review pass
+/update-docs-light               ← optional architecture-doc sync
+/create-pr  (or /create-pr-doc)  ← `/create-pr` if a task dir exists
+```
+
+### Modular / light pipeline (no task documents)
+
+Best for ad-hoc work — quick fixes, doc-only changes, exploratory branches — where you don't want any `tasks/<TASK-ID>/` directory at all. Each step is a small focused skill.
+
+```
+/create-branch-light <summary> [ticket]
+         │
+         ▼  (do the work)
+         │
+/commit-changes-light [type] [message]
+/review-changes-light            ← optional, before pushing
+/update-docs-light               ← optional, sync architecture/
+         │
+         ▼
+/create-pr-light                 ← code branches
+/create-pr-doc                   ← documentation-only branches (skips build/test)
+```
+
+The `-light` skills work from the branch diff and the conversation, not from `summary.md` / `plan.md` / etc. They're safe to mix into a canonical task too if you need a one-off step that doesn't fit a stage.
+
 ### Directory layout produced
+
+The canonical and simple pipelines produce a `tasks/<TASK-ID>/` tree. While a stage is in progress it contains the full set of working documents; once `/update-docs` (or `/run-stage`) completes, the stage is **compacted** — the working documents are deleted and a `## Changes` section is appended to `summary.md`. The light pipeline produces no task tree at all.
 
 ```
 project-root/
@@ -107,13 +148,16 @@ project-root/
         └── <TASK-ID>/
             ├── summary.md        ← Status, CurrentStage
             └── stage-1-<slug>/
-                ├── summary.md        ← Stage, Slug, Status, Created, Goal
-                ├── research.md       ← /research-stage
-                ├── plan.md           ← /plan-stage
-                ├── implementation.md ← /implement-stage
-                ├── review.md         ← /review-stage
-                └── findings.md       ← /update-docs
+                ├── summary.md        ← Stage, Slug, Status, Created, Goal,
+                │                       + ## Changes (added at compaction)
+                ├── research.md       ← /research-stage      (deleted at compaction)
+                ├── plan.md           ← /plan-stage          (deleted at compaction)
+                ├── implementation.md ← /implement-stage     (deleted at compaction)
+                ├── review.md         ← /review-stage        (deleted at compaction)
+                └── findings.md       ← /update-docs         (kept as long-term record)
 ```
+
+After compaction, the long-term record of a stage is `summary.md` (with its `## Changes` section) plus `findings.md`. A compacted stage cannot be re-documented — start a new stage instead.
 
 ## Skills reference
 
@@ -121,19 +165,19 @@ project-root/
 
 | Skill | Arguments | Purpose |
 |---|---|---|
-| `/bootstrap-project` | interactive | Scaffold a **new** project: `CLAUDE.md`, docs tree, build config, `.gitignore`, initial commit. Language templates: `scala`, `node-service`, `react-typescript`, generic. |
+| `/bootstrap-project` | interactive | Scaffold a **new** project: `CLAUDE.md`, docs tree, build config, `.gitignore`, initial commit. Language templates: `scala`, `node-service`, `react-typescript`, `python`, generic. |
 | `/bootstrap-documentation` | — | For an **existing** codebase: analyses the repo and generates `CLAUDE.md` + `<DOCS_DIR>/architecture/*.md` + task infrastructure without overwriting existing files. |
-| `/migrate-task-documents` | — | Convert legacy task docs (flat `.md` files or stage-less task directories) into the current stage-based layout. |
+| `/migrate-task-documents` | — | Convert legacy task docs (flat `.md` files or stage-less task directories) into the current stage-based layout, then run a retroactive `/update-docs` + compaction pass on every migrated task. |
 
 ### Task lifecycle
 
 | Skill | Arguments | Writes | Reads |
 |---|---|---|---|
 | `/init-task` | `[issue-id]` (optional) | `tasks/<TASK-ID>/summary.md`, `stage-1-<slug>/summary.md` (both `Status: initial`) | issue tracker (if an ID is given) |
-| `/start-task` | `[issue-id \| task-id]` (optional) | `tasks/<TASK-ID>/summary.md`, `stage-1-<slug>/summary.md`, `Overview.md`; creates feature branch | issue tracker |
+| `/start-task` | `[issue-id \| task-id]` (optional) | `tasks/<TASK-ID>/summary.md`, `stage-1-<slug>/summary.md`, `Overview.md`; creates feature branch when on a base branch | issue tracker |
+| `/start-task-simple` | `[task-id] [stage-number]` (optional) | full task + stage docs in one go (`summary.md`, `research.md`, `plan.md`, `implementation.md`); creates branch only if on a base branch; single commit at the end | issue tracker, codebase |
 | `/init-stage` | `[task-id]` (optional) | new `stage-<N>-<slug>/summary.md` (`Status: initial`) | task directory, git branch |
 | `/start-stage` | `<task-id>` | new `stage-<N>-<slug>/summary.md`, updates task `summary.md` + `Overview.md` | previous stage |
-| `/create-branch` | — (invoked by `/start-task`) | new git branch `<prefix>/<ticket>-<slug>` | current base branch |
 | `/read-issue` | `<issue-id>` (e.g. `123`, `#123`, `AP-20564`) | — (returns issue details) | GitHub Issues or JIRA |
 
 ### Stage lifecycle (run in order, or use `/run-stage`)
@@ -146,17 +190,32 @@ All stage skills take `<task-id> [stage-number]`. Stage number is auto-detected 
 | `/plan-stage`       | `plan.md`                 | `researched`  | `planned`     |
 | `/implement-stage`  | code + `implementation.md` | `planned`     | `implemented` |
 | `/review-stage`     | `review.md` (+ minor fixes) | `implemented` | `reviewed`   |
-| `/update-docs`      | `findings.md`, updates `<DOCS_DIR>/architecture/` | `reviewed` | `documented` |
+| `/update-docs`      | `findings.md`, updates `<DOCS_DIR>/architecture/`, appends `## Changes` to `summary.md`, deletes the working stage docs (compaction) | `reviewed` | `documented` |
 | `/run-stage`        | all of the above, via subagents | `created` | `documented` |
 
 `/plan-stage` **does not read source code** — it works from `research.md` only. This keeps the planning context small and forces research to surface everything the plan needs.
+
+`/update-docs` is the one-way exit from a stage: it compacts the stage (deletes `research.md`, `plan.md`, `implementation.md`, `review.md`) once the long-term record (`summary.md` `## Changes` + `findings.md` + architecture-doc updates) is in place. A compacted stage cannot be re-documented; start a new stage instead.
+
+### Modular / light flow (no task documents)
+
+These skills work from the branch diff and conversation context only — no `tasks/<TASK-ID>/` directory is read or written. Useful for ad-hoc work, quick fixes, or doc-only branches.
+
+| Skill | Arguments | Purpose |
+|---|---|---|
+| `/create-branch-light` | `<summary> [ticket-id]` | Create a feature branch (`<prefix>/<TICKET>-<slug>` or `<prefix>/<slug>`) from the current base branch. Same naming strategy as `/start-task`. |
+| `/commit-changes-light` | `[type] [message]` | Stage relevant files and commit with a conventional message (`<type>: <description>`, no scope). Infers the type from the diff if not given. |
+| `/review-changes-light` | — | Self-review committed + uncommitted changes against the conversation goal, project `CLAUDE.md`s, code quality, and test coverage. Makes only minor fixes directly. |
+| `/update-docs-light` | — | Update `<DOCS_DIR>/architecture/` to match the current branch state (committed + uncommitted), no task doc involved. |
+| `/create-pr-light` | `[title]` | Validate build, push, and open/update a draft PR. Body derived from commits + diff. |
+| `/create-pr-doc` | — | Same as `/create-pr-light` but for documentation-only branches; skips build/test validation. |
 
 ### PR & maintenance
 
 | Skill                    | Arguments | Purpose                                                                                                                                       |
 | ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/create-pr`             | —         | Validate build, push branch, open/update a draft PR via `gh`. PR body is assembled from each stage's summary.                                 |
-| `/refresh-documentation` | —         | Parallel audit of architecture drift, task-knowledge integration, `CLAUDE.md` accuracy, and structural validation; offers fixes for approval. |
+| `/create-pr`             | —         | Validate build, push branch, open/update a draft PR via `gh`. PR body is assembled from each stage's `summary.md` (`## Goal` + `## Changes`) and `findings.md`, falling back to `implementation.md`/`review.md` for uncompacted stages. |
+| `/refresh-documentation` | —         | Parallel audit of architecture drift, task-knowledge integration (compaction-aware), `CLAUDE.md` accuracy, and structural validation; offers fixes for approval. |
 
 ## Inputs you provide manually
 

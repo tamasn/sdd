@@ -51,13 +51,33 @@ All stage skills work within this directory structure:
 <DOCS_DIR>/tasks/<TASK-ID>/
   summary.md                      # Task-level: ID, Type, Author, Created, Status, CurrentStage
   stage-1-<slug>/
-    summary.md                    # Stage-level: Stage, Slug, Status, Created, Goal
-    research.md                   # research-stage output
-    plan.md                       # plan-stage output
-    implementation.md             # implement-stage output
-    review.md                     # review-stage output
-    findings.md                   # update-docs output
+    summary.md                    # Stage-level: Stage, Slug, Status, Created, Goal, Changes (after compaction)
+    research.md                   # research-stage output (removed at compaction)
+    plan.md                       # plan-stage output (removed at compaction)
+    implementation.md             # implement-stage output (removed at compaction)
+    review.md                     # review-stage output (removed at compaction)
+    findings.md                   # update-docs output (kept after compaction)
 ```
+
+After the compaction step at the end of `/update-docs`, the `research.md`, `plan.md`, `implementation.md`, and `review.md` files are deleted. The stage `summary.md` (with a new `## Changes` section) and `findings.md` are the long-term record.
+
+## Compaction
+
+Run as the final action of `/update-docs` (and any equivalent stage wrap-up). Always automatic — no prompt.
+
+1. Verify the stage status is `documented` (the wrap-up has succeeded), `findings.md` exists and is non-empty, and the architecture docs commit/update has been written.
+2. Read `<STAGE-DIR>/implementation.md` and `<STAGE-DIR>/review.md` (and any other stage docs still present).
+3. In `<STAGE-DIR>/summary.md`, append (or replace if it already exists) a `## Changes` section. The section must contain:
+   - **Summary** — 1-3 sentences describing what the stage actually shipped (drawn from `implementation.md` + the diff).
+   - **Files modified** — bullet list of the primary file paths touched, with one-line notes where useful.
+   - **Notes** *(optional)* — only if there are concrete deviations or follow-ups worth keeping; otherwise omit. Pull from `implementation.md`'s "Issues encountered", "Key decisions", and "Follow-up" sections, distilled.
+4. Delete `<STAGE-DIR>/research.md`, `<STAGE-DIR>/plan.md`, `<STAGE-DIR>/implementation.md`, and `<STAGE-DIR>/review.md` if they exist.
+5. Leave `summary.md` and `findings.md` in place.
+6. Include the deletions and the updated `summary.md` in the same commit as the documentation updates (or, if the docs commit has already been made, create a follow-up commit `docs(<TASK-ID>): compact stage <N> documentation`).
+
+If `findings.md` is missing when compaction runs, stop with an error and ask the user to complete `/update-docs` first — compaction must never destroy information that has not been preserved elsewhere.
+
+A stage that has already been compacted is identified by the presence of a `## Changes` section in `summary.md` and the absence of `implementation.md`. Skills that allow re-runs (e.g. `/update-docs`, `/review-stage`) must refuse the re-run on a compacted stage and tell the user to start a new stage instead.
 
 ## CLAUDE.md hierarchy
 

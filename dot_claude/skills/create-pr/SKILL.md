@@ -19,7 +19,7 @@ Read [config.md](../_shared/config.md) to resolve `<DOCS_DIR>` and `<DEFAULT_BRA
 ## Instructions
 
 1. **Locate task directory**: Find the `<DOCS_DIR>/tasks/<TASK-ID>/` directory for the current branch. Read task `summary.md`.
-2. **Collect stage summaries**: Scan all `stage-N-*` directories. For each stage, read `summary.md` and `implementation.md` (if present).
+2. **Collect stage summaries**: Scan all `stage-N-*` directories. For each stage, read `summary.md` (including its `## Goal` and — if present — its `## Changes` section) and `findings.md`. If a stage has not yet been compacted (no `## Changes` section in `summary.md`, but `implementation.md` is present), fall back to reading `implementation.md` and `review.md` for the same information.
 3. **Validate build**: Check `<DOCS_DIR>/architecture/CLAUDE.md` or `Tech-Stack.md` for the project's build/test commands. Run them. Fix errors or ask for guidance.
 4. **Check PR conventions**: Look for conventions in `<DOCS_DIR>/architecture/CLAUDE.md`. Default title: `<type>(<scope>): <description>`.
 5. **Push branch**: `git push origin HEAD`
@@ -43,15 +43,17 @@ Read [config.md](../_shared/config.md) to resolve `<DOCS_DIR>` and `<DEFAULT_BRA
 ## Stages
 
 ### Stage 1: <slug>
-<Goal and key changes from stage-1 summary.md and implementation.md>
+<Goal from stage summary.md and the `## Changes` section (or implementation.md if not yet compacted)>
 
 ### Stage 2: <slug>
-<Goal and key changes from stage-2 summary.md and implementation.md>
+<Goal from stage summary.md and the `## Changes` section (or implementation.md if not yet compacted)>
 ...
 
 ## Testing
-<Testing performed across all stages>
+<Testing performed across all stages — pull from each stage's `## Changes` Notes, findings.md, or implementation.md>
 
 ## Breaking changes
 <Any breaking changes, or "None">
 ```
+
+The compacted `summary.md` (`## Goal` + `## Changes`) is the primary source for each stage's PR section. `findings.md` supplements it with learnings/patterns when relevant. Older uncompacted stages should still produce a usable PR body via the `implementation.md` fallback.
